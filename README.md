@@ -1,3 +1,4 @@
+GitHub Release v0.1
 # Personalized News Recommendation (Stream Data Based)  
 
 [![Python Version](https://img.shields.io/badge/python->=2.7.13-blue)](https://www.python.org/)  

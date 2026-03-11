@@ -1,0 +1,65 @@
+# Personalized News Recommendation (Stream Data Based)
+
+## Objective
+The purpose of this project is to study reinforcement learning approaches for building an article recommender system. We aim to explore interactive recommendation using contextual multi-armed bandits to learn user preferences and recommend new articles while receiving feedback.
+
+---
+
+## Problem
+Interactive recommendation can be formulated as a **contextual multi-armed bandit problem**, where the system recommends articles to users and receives ratings. Key challenges include:
+
+- **Exploitation vs. exploration trade-off**
+- **Cold-start problem** for new users or articles
+
+---
+
+## Solution
+We leverage reinforcement learning to address the challenges above. Our approach explores both:
+
+1. **Content-based recommendation**  
+2. **Collaborative filtering recommendation**  
+
+We implemented and compared the following algorithms:
+
+- **LinUCB**
+- **Hybrid LinUCB**
+- **ε-Greedy**
+- **Random selection**
+
+Additionally, we preprocess the data to generate user and article feature vectors for model input.
+
+---
+
+## Technical Details
+
+### Algorithms
+
+#### LinUCB
+A state-of-the-art contextual bandit algorithm.  
+- Selects arms based on an upper confidence bound of estimated reward using context vectors.  
+- Assumes users/bandits are independent.  
+- Only uses observed features; hidden features are not considered.  
+
+#### Hybrid LinUCB
+Similar to LinUCB but incorporates **user-article interactions**, capturing dependencies between users and articles.  
+
+#### ε-Greedy
+- Exploits the best-known option most of the time (proportion `1-ε`) and explores randomly with probability `ε`.  
+- Does not use user-article interaction information.  
+- Typical ε value: 0.1  
+
+#### Random
+- Selects articles randomly from the pool with equal probability.  
+- Requires no parameters and does not learn over time.
+
+---
+
+## Simulation & Usage
+
+### Requirements
+- Python >= 2.7.13
+
+### Commands
+1. **Run LinUCB notebook**  
+```bash
+jupyter notebook src/LinUCB.ipynb

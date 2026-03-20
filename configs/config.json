@@ -1,5 +1,0 @@
-{
-    "model": "TF-IDF + LinUCB",
-    "alpha": 1.0,
-    "dataset": "data/news.csv"
-}

@@ -1,0 +1,11 @@
+{
+  "total_articles": 166045,
+  "n_categories": 20,
+  "train_size": 132835,
+  "val_size": 16605,
+  "test_size": 16605,
+  "avg_text_len_words": 29.764738209056347,
+  "median_text_len": 29.0,
+  "min_cat_articles": 2787,
+  "max_cat_articles": 28479
+}

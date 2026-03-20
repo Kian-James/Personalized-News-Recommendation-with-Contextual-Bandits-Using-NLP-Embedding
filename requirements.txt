@@ -1,5 +1,27 @@
-numpy
-pandas
-scikit-learn
-torch
-matplotlib
+# News Recommender System — Dependencies
+# Python 3.10+
+# Install: pip install -r requirements.txt
+
+# ── Core ML / DL ──────────────────────────────────────────────────────────────
+torch>=2.1.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# ── NLP ───────────────────────────────────────────────────────────────────────
+sentence-transformers>=2.6.0   # all-MiniLM-L6-v2 embeddings
+transformers>=4.35.0
+
+# ── Data handling ─────────────────────────────────────────────────────────────
+pandas>=2.0.0
+
+# ── Visualisation ─────────────────────────────────────────────────────────────
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# ── Notebook support (optional but recommended) ───────────────────────────────
+jupyter>=1.0.0
+ipykernel>=6.0.0
+
+# ── Reproducibility & utils ───────────────────────────────────────────────────
+tqdm>=4.65.0

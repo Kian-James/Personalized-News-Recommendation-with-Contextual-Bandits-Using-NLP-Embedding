@@ -1,11 +1,3 @@
-{
-  "total_articles": 166045,
-  "n_categories": 20,
-  "train_size": 132835,
-  "val_size": 16605,
-  "test_size": 16605,
-  "avg_text_len_words": 29.764738209056347,
-  "median_text_len": 29.0,
-  "min_cat_articles": 2787,
-  "max_cat_articles": 28479
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:83645714a93bbdf9128496fe6c3a7d0a632a9636f3e08729f6e4001d4397405a
+size 247

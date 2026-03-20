@@ -1,34 +1,3 @@
-{
-  "seed": 42,
-  "data": {
-    "top_n_categories": 20,
-    "min_articles_per_cat": 200,
-    "val_size": 0.10,
-    "test_size": 0.10
-  },
-  "nlp": {
-    "tfidf_max_features": 20000,
-    "sbert_model": "all-MiniLM-L6-v2",
-    "sbert_batch_size": 256
-  },
-  "cnn": {
-    "embed_dim": 128,
-    "filter_sizes": [2, 3, 4],
-    "num_filters": 100,
-    "dropout": 0.5,
-    "max_len": 50,
-    "epochs": 10,
-    "batch_size": 128,
-    "lr": 0.001
-  },
-  "rl": {
-    "epsilon": 0.15,
-    "epsilon_decay": 0.001,
-    "linucb_alpha": 0.5,
-    "n_users": 200,
-    "candidates_per_step": 20,
-    "click_threshold": 0.50,
-    "n_steps": 3000,
-    "n_seeds": 3
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:9be2ea4164661a77370e9adc5206384a965c19ed51338a61ea64a3710a8274a1
+size 651

@@ -33,24 +33,19 @@ echo ""
 echo "[2/4] Running EDA..."
 python notebooks/01_eda.py
 
-# 3. Train all components (NLP + CNN + RL)
+# 3. Train all components (NLP + CNN + RL) — saves to next run folder
 echo ""
 echo "[3/4] Training..."
 python src/train.py $FAST_FLAG
 
-# 4. Evaluation
+# 4. Evaluation — auto-reads from latest run folder
 echo ""
 echo "[4/4] Running evaluation suite..."
 python src/eval.py
 
 echo ""
 echo "============================================================"
-echo "  All done! Results saved to experiments/results/"
+echo "  All done!"
+echo "  Results saved to experiments/results/run*/"
+echo "  Run 'python src/eval.py --run run1' to re-evaluate a past run."
 echo "============================================================"
-echo ""
-echo "Key output files:"
-echo "  experiments/results/cnn_metrics.json      — TextCNN accuracy & F1"
-echo "  experiments/results/ranking_metrics.json  — nDCG & Hit@K"
-echo "  experiments/results/ablation_results.csv  — Ablation study"
-echo "  experiments/results/rl_summary.json       — RL agent comparison"
-echo "  experiments/results/*.png                 — All plots & curves"

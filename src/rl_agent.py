@@ -269,7 +269,7 @@ def plot_learning_curves(results: dict, agent_name: str,
 
 
 def compare_agents(env: NewsRecommendationEnv, n_steps: int = 2000,
-                   n_seeds: int = 3):
+                   n_seeds: int = 3, save_dir: Path = None):
     """Run all agents across multiple seeds and compare."""
     agent_results = {}
     dim = env.dim
@@ -315,7 +315,8 @@ def compare_agents(env: NewsRecommendationEnv, n_steps: int = 2000,
     ax.set_ylabel(f"Avg reward (window={window})")
     ax.legend()
     plt.tight_layout()
-    save_p = RESULTS_DIR / "rl_comparison.png"
+    save_dir = save_dir or RESULTS_DIR
+    save_p = save_dir / "rl_comparison.png"
     plt.savefig(save_p, dpi=120, bbox_inches="tight")
     plt.close()
     print(f"[rl_agent] Comparison plot saved → {save_p}")
@@ -324,7 +325,7 @@ def compare_agents(env: NewsRecommendationEnv, n_steps: int = 2000,
     numeric = {k: {"total_cumulative": float(v["cumulative"][-1])}
                for k, v in summary.items() if k != "Random"}
     numeric["Random"] = {"mean_reward": float(random_reward)}
-    with open(RESULTS_DIR / "rl_summary.json", "w") as f:
+    with open(save_dir / "rl_summary.json", "w") as f:
         json.dump(numeric, f, indent=2)
 
     return summary

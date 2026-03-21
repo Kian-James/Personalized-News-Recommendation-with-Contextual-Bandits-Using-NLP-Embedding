@@ -2,7 +2,11 @@
 data_pipeline.py
 Load, clean, and split the HuffPost News Category Dataset.
 Dataset: https://www.kaggle.com/datasets/rmisra/news-category-dataset
-Format:  JSON-lines, one article per line.
+
+Key design decisions for 1,000-article subset:
+  - Merge semantically overlapping categories to reduce confusion
+  - Raise MIN_ARTICLES_PER_CAT so every class has enough samples
+  - Oversample minority classes so the CNN trains on balanced data
 """
 
 import json
@@ -14,35 +18,50 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
-# ── reproducibility ──────────────────────────────────────────────────────────
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-# ── constants ─────────────────────────────────────────────────────────────────
-DATA_DIR   = Path("data")
-RAW_FILE   = DATA_DIR / "News_Category_Dataset_v3.json"
-PROCESSED  = DATA_DIR / "processed"
+DATA_DIR  = Path("data")
+RAW_FILE  = DATA_DIR / "News_Category_Dataset_v3.json"
+PROCESSED = DATA_DIR / "processed"
 
-# Keep top-N categories for a tractable classification problem
-TOP_N_CATS = 20
-MIN_ARTICLES_PER_CAT = 200
+# ── Raise minimum so every class has enough signal ────────────────────────────
+TOP_N_CATS           = 6     # fewer, cleaner categories
+MIN_ARTICLES_PER_CAT = 50    # guarantee enough per class
 
+# ── Merge categories that are semantically too similar ────────────────────────
+# U.S. NEWS and POLITICS overlap heavily → merge into POLITICS
+# CRIME has too few samples → merge into U.S. NEWS (then both go to POLITICS)
+# CULTURE & ARTS and ENVIRONMENT have too few → drop (below MIN threshold)
+CATEGORY_MAP = {
+    "U.S. NEWS":      "POLITICS",       # overlap too high
+    "CRIME":          "POLITICS",       # domestic political/legal
+    "CULTURE & ARTS": "ENTERTAINMENT",  # broad entertainment umbrella
+    "ARTS":           "ENTERTAINMENT",
+    "ARTS & CULTURE": "ENTERTAINMENT",
+    "COMEDY":         "ENTERTAINMENT",
+    "WEIRD NEWS":     "ENTERTAINMENT",
+    "STYLE":          "ENTERTAINMENT",
+    "STYLE & BEAUTY": "ENTERTAINMENT",
+    "TASTE":          "ENTERTAINMENT",
+    "FOOD & DRINK":   "ENTERTAINMENT",
+    "HOME & LIVING":  "ENTERTAINMENT",
+    "PARENTS":        "ENTERTAINMENT",
+    "WEDDINGS":       "ENTERTAINMENT",
+}
 
-# ── helpers ───────────────────────────────────────────────────────────────────
 
 def clean_text(text: str) -> str:
-    """Lower-case, remove HTML entities & excess whitespace."""
     text = text.lower()
-    text = re.sub(r"&[a-z]+;", " ", text)          # HTML entities
-    text = re.sub(r"http\S+", " ", text)            # URLs
-    text = re.sub(r"[^a-z0-9\s\'\-]", " ", text)   # keep apostrophes/hyphens
+    text = re.sub(r"&[a-z]+;", " ", text)
+    text = re.sub(r"http\S+", " ", text)
+    text = re.sub(r"[^a-z0-9\s\'\-]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
 
 def load_raw(path: Path = RAW_FILE) -> pd.DataFrame:
-    """Read JSON-lines file into a DataFrame."""
     records = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
@@ -59,25 +78,21 @@ def load_raw(path: Path = RAW_FILE) -> pd.DataFrame:
 
 
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    1. Combine headline + short_description into a single text field.
-    2. Drop rows with empty text or category.
-    3. Keep only top-N categories with enough samples.
-    4. Clean text.
-    """
     df = df.copy()
 
-    # Combine text fields
+    # Combine text
     df["headline"]          = df["headline"].fillna("").astype(str)
     df["short_description"] = df["short_description"].fillna("").astype(str)
     df["text"] = (df["headline"] + " " + df["short_description"]).str.strip()
-
-    # Drop empties
     df = df[df["text"].str.len() > 5].reset_index(drop=True)
 
-    # Filter to top-N categories
+    # Apply category merges
+    df["category"] = df["category"].replace(CATEGORY_MAP)
+
+    # Keep top-N categories with enough samples
     cat_counts = df["category"].value_counts()
-    top_cats   = cat_counts[cat_counts >= MIN_ARTICLES_PER_CAT].head(TOP_N_CATS).index.tolist()
+    top_cats   = cat_counts[cat_counts >= MIN_ARTICLES_PER_CAT]\
+                     .head(TOP_N_CATS).index.tolist()
     df = df[df["category"].isin(top_cats)].reset_index(drop=True)
 
     # Clean text
@@ -90,45 +105,65 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     print(f"[data_pipeline] After filtering: {len(df):,} articles, "
           f"{df['category'].nunique()} categories.")
     print(f"  Categories: {sorted(df['category'].unique())}")
+    print(f"  Class distribution:\n"
+          + "\n".join(f"    {cat}: {n}"
+                      for cat, n in df["category"].value_counts().items()))
     return df, le
 
 
-def split_data(df: pd.DataFrame, val_size=0.10, test_size=0.10):
+def oversample_minority(df: pd.DataFrame, random_state: int = SEED) -> pd.DataFrame:
     """
-    Stratified split: train / val / test.
-    No leakage — splits are done once and indices saved.
+    Oversample minority classes to the count of the majority class.
+    Only applied to the training split — never val or test.
     """
+    max_count = df["category"].value_counts().max()
+    parts = []
+    for cat, group in df.groupby("category"):
+        if len(group) < max_count:
+            extra = group.sample(n=max_count - len(group),
+                                 replace=True, random_state=random_state)
+            parts.append(pd.concat([group, extra]))
+        else:
+            parts.append(group)
+    balanced = pd.concat(parts).sample(frac=1, random_state=random_state)\
+                               .reset_index(drop=True)
+    print(f"[data_pipeline] After oversampling: {len(balanced):,} train samples "
+          f"({balanced['category'].value_counts().to_dict()})")
+    return balanced
+
+
+def split_data(df, val_size=0.10, test_size=0.10):
     train_val, test = train_test_split(
-        df, test_size=test_size, stratify=df["label"], random_state=SEED
-    )
-    relative_val = val_size / (1 - test_size)
+        df, test_size=test_size, stratify=df["label"], random_state=SEED)
+    rel_val = val_size / (1 - test_size)
     train, val = train_test_split(
-        train_val, test_size=relative_val, stratify=train_val["label"], random_state=SEED
-    )
+        train_val, test_size=rel_val, stratify=train_val["label"], random_state=SEED)
     print(f"[data_pipeline] Split → train={len(train):,} | "
           f"val={len(val):,} | test={len(test):,}")
-    return train.reset_index(drop=True), val.reset_index(drop=True), test.reset_index(drop=True)
+    return (train.reset_index(drop=True),
+            val.reset_index(drop=True),
+            test.reset_index(drop=True))
 
 
 def run_pipeline(raw_path: Path = RAW_FILE):
-    """End-to-end: load → preprocess → split → save."""
     PROCESSED.mkdir(parents=True, exist_ok=True)
-
     df_raw        = load_raw(raw_path)
     df, label_enc = preprocess(df_raw)
     train, val, test = split_data(df)
 
-    train.to_csv(PROCESSED / "train.csv", index=False)
-    val.to_csv(PROCESSED  / "val.csv",   index=False)
-    test.to_csv(PROCESSED / "test.csv",  index=False)
+    # Oversample training split only
+    train_balanced = oversample_minority(train)
 
-    # Save label mapping
+    train_balanced.to_csv(PROCESSED / "train.csv", index=False)
+    val.to_csv(PROCESSED            / "val.csv",   index=False)
+    test.to_csv(PROCESSED           / "test.csv",  index=False)
+
     mapping = dict(enumerate(label_enc.classes_))
     with open(PROCESSED / "label_map.json", "w") as f:
         json.dump(mapping, f, indent=2)
 
     print(f"[data_pipeline] Saved splits to {PROCESSED}/")
-    return train, val, test, label_enc
+    return train_balanced, val, test, label_enc
 
 
 if __name__ == "__main__":
